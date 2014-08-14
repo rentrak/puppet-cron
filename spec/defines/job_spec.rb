@@ -52,6 +52,36 @@ describe 'cron::job' do
     end
   end
 
+  describe 'job with environment hash' do
+    let( :params ) {{
+      :minute      => '45',
+      :hour        => '7',
+      :date        => '12',
+      :month       => '7',
+      :weekday     => '*',
+      :environment => { 'MAILTO' => "root", "PATH" => "/usr/sbin:/usr/bin:/sbin:/bin" },
+      :user        => 'admin',
+      :mode        => '0640',
+      :command     => 'mysqldump -u root test_db >some_file',
+    }}
+    let( :cron_timestamp ) { get_timestamp( params ) }
+
+    it do
+      should contain_file( "job_#{title}" ).with(
+        'owner'   => 'root',
+        'mode'    => params[:mode]
+      ).with_content(
+        /\nMAILTO=\"root\"\nPATH=\"\/usr\/sbin:\/usr\/bin:\/sbin:\/bin\"\n/
+      ).with_content(
+        /\n#{cron_timestamp}\s+/
+      ).with_content(
+        /\s+#{params[:user]}\s+/
+      ).with_content(
+        /\s+#{params[:command]}\n/
+      )
+    end
+  end
+
   describe 'job with ensure set to absent' do
     let( :params ) {{
       :ensure  => 'absent',
